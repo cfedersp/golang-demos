@@ -1,0 +1,17 @@
+[
+{"id":"cand 1", "name": "charlie"},
+{"id":"cand 2", "name": "chris"},
+{"id":"cand 3", "name": "vinod"},
+{"id":"cand 4", "name": "justin"},
+{"id":"cand 5", "name": "elliot"},
+{"id":"cand 6", "name": "emily"},
+{"id":"cand 7", "name": "alexis"},
+{"id":"cand 8", "name": "soniya"},
+{"id":"cand 9", "name": "will"},
+{"id":"cand 10", "name": "naresh"},
+{"id":"cand 11", "name": "xiang"},
+{"id":"cand 12", "name": "ilya"},
+{"id":"cand 13", "name": "sam"},
+{"id":"cand 14", "name": "mike"},
+{"id":"cand 15", "name": "jerry"}
+]
