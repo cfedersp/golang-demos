@@ -79,15 +79,20 @@ func main() {
 	mainChannel := make(chan Candidate)
 	priorityChannel := make(chan Candidate);
 	outputChannel := make(chan Candidate);
+	
+	// instantiate go routines. These will run continuously. Go is smart enough to stop these when all channels are drained.
 	go controller(mainChannel, priorityChannel, outputChannel, concurrency);
 	go saveToOutputBucket(outputChannel);
+	
 	// put first page onto the main channel
 	for firstPageOffset := 0; firstPageOffset < pageSize; firstPageOffset++ {
 		mainChannel <- jrCandidates[firstPageOffset];
 	}
-	// wait 2.5 seconds
+	
+	// Simulate secondary batch completion by waiting 2.5 seconds before processing the next file.
 	time.Sleep(2500 * time.Millisecond)
-	// put priority items onto priority channel
+	
+	// Now put priority items onto priority channel
 	for srOffset := 0; srOffset < len(srCandidates); srOffset++ {
 		priorityChannel <- srCandidates[srOffset];
 	}
