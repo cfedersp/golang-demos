@@ -7,6 +7,7 @@ import (
     "os"
 	"sync"
 	"time"
+	"strings"
 )
 
 
@@ -42,7 +43,16 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 	}
 }
 func zEngineInt(inputCandidate Candidate, outputChannel chan Candidate) {
-	inputCandidate.JobRec = "Java Developer";
+
+	if(strings.Compare(strings.ToLower(inputCandidate.Name)[0:1], "e") < 1) {
+		inputCandidate.JobRec = "Data Scientist";
+	} else {
+		inputCandidate.JobRec = "Java Developer";
+	}
+	if(strings.ToLower(inputCandidate.Name) != inputCandidate.Name) {
+		inputCandidate.JobRec += " 2"
+	}
+
 	outputChannel <- inputCandidate;
 }
 func saveToOutputBucket(outputChannel chan Candidate) {
