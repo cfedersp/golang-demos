@@ -5,6 +5,7 @@ import (
     "fmt"
     "io/ioutil"
     "os"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,7 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 
 	for {
 		<-tick // run this loop once per second
+		var wg sync.WaitGroup
 		// process a few items simultaneously
 		PARALLELBATCH: for perTickCandidateCounter := 0; perTickCandidateCounter < parallelization; perTickCandidateCounter++ {
 			select {
@@ -36,6 +38,7 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 				break PARALLELBATCH;
 			}
 		}
+		wg.Wait()
 	}
 }
 func zEngineInt(inputCandidate Candidate, outputChannel chan Candidate) {
