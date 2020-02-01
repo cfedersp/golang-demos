@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"strings"
+	"strconv"
 )
 
 
@@ -22,7 +23,11 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 	tick := time.Tick(1000 * time.Millisecond)
 	boom := time.After(500 * time.Millisecond)
 
+	loopNum := int64(0)
+
 	for {
+		loopNum++;
+		fmt.Println("+++++", loopNum);
 		<-tick // run this loop once per second
 		var wg sync.WaitGroup
 		// process a few items simultaneously
@@ -30,19 +35,24 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 			select {
 			case currCandidate := <-priority:
 
-				go zEngineInt(currCandidate, outputChannel)
+				wg.Add(1);
+				go zEngineInt(loopNum, currCandidate, outputChannel, &wg);
 
 			case currCandidate := <-main:
-
-				go zEngineInt(currCandidate, outputChannel)
+				wg.Add(1);
+				go zEngineInt(loopNum, currCandidate, outputChannel, &wg);
 			case <-boom:
+				fmt.Println("######", loopNum);
 				break PARALLELBATCH;
 			}
 		}
 		wg.Wait()
+		fmt.Println("------", loopNum);
 	}
 }
-func zEngineInt(inputCandidate Candidate, outputChannel chan Candidate) {
+func zEngineInt(loopCount int64, inputCandidate Candidate, outputChannel chan Candidate, wg *sync.WaitGroup) {
+
+	defer wg.Done()
 
 	if(strings.Compare(strings.ToLower(inputCandidate.Name)[0:1], "e") < 1) {
 		inputCandidate.JobRec = "Data Scientist";
@@ -52,6 +62,7 @@ func zEngineInt(inputCandidate Candidate, outputChannel chan Candidate) {
 	if(strings.ToLower(inputCandidate.Name) != inputCandidate.Name) {
 		inputCandidate.JobRec += " 2"
 	}
+	inputCandidate.JobRec += " " + strconv.FormatInt(loopCount, 10);
 
 	outputChannel <- inputCandidate;
 }
@@ -109,6 +120,8 @@ func main() {
 	for srOffset := 0; srOffset < len(srCandidates); srOffset++ {
 		priorityChannel <- srCandidates[srOffset];
 	}
+	fmt.Println("done pushing priority items");
+
 	// put remaining page(s) onto main channel
 	for remainingOffset := pageSize; remainingOffset < len(jrCandidates); remainingOffset++ {
 		mainChannel <- jrCandidates[remainingOffset];
