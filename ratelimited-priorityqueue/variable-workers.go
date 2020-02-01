@@ -83,8 +83,9 @@ func main() {
 	pageSize := 10
 	concurrency := 3
 	fmt.Println("Process all developers at a rate of ", concurrency, " per second. Process all Senior devs when they become available 2.5 seconds after processing begins.")
-	fmt.Println("Senior devs are the video game characters.");
-	
+	fmt.Println("Hint: Senior devs are the video game characters.");
+	fmt.Println("This pipeline calls a recommendation service that simply suggests high level jobs to people that capitalize their name :)");
+
 	jrData, jrErr := ioutil.ReadFile(os.Args[1])
 	if(jrErr != nil) {
 		panic(jrErr);

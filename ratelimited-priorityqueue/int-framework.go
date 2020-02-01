@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 	"strings"
-	"strconv"
+	// "strconv"
 )
 
 
@@ -27,7 +27,7 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 
 	for {
 		loopNum++;
-		fmt.Println("+++++", loopNum);
+		//fmt.Println("+++++", loopNum);
 		<-tick // run this loop once per second
 		var wg sync.WaitGroup
 		// process a few items simultaneously
@@ -42,12 +42,12 @@ func controller(main chan Candidate, priority chan Candidate, outputChannel chan
 				wg.Add(1);
 				go zEngineInt(loopNum, currCandidate, outputChannel, &wg);
 			case <-boom:
-				fmt.Println("######", loopNum);
+				//fmt.Println("######", loopNum);
 				break PARALLELBATCH;
 			}
 		}
 		wg.Wait()
-		fmt.Println("------", loopNum);
+		//fmt.Println("------", loopNum);
 	}
 }
 func zEngineInt(loopCount int64, inputCandidate Candidate, outputChannel chan Candidate, wg *sync.WaitGroup) {
@@ -62,7 +62,7 @@ func zEngineInt(loopCount int64, inputCandidate Candidate, outputChannel chan Ca
 	if(strings.ToLower(inputCandidate.Name) != inputCandidate.Name) {
 		inputCandidate.JobRec += " 2"
 	}
-	inputCandidate.JobRec += " " + strconv.FormatInt(loopCount, 10);
+	// inputCandidate.JobRec += " " + strconv.FormatInt(loopCount, 10);
 
 	outputChannel <- inputCandidate;
 }
@@ -79,7 +79,8 @@ func main() {
 	pageSize := 10
 	concurrency := 3
 	fmt.Println("Process all developers at a rate of ", concurrency, " per second. Process all Senior devs when they become available 2.5 seconds after processing begins.")
-	fmt.Println("Senior devs are the video game characters.");
+	fmt.Println("Hint: Senior devs are the video game characters.");
+	fmt.Println("This pipeline calls a recommendation service that simply suggests high level jobs to people that capitalize their name :)");
 	
 	jrData, jrErr := ioutil.ReadFile(os.Args[1])
 	if(jrErr != nil) {
