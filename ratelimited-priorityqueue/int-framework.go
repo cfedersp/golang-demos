@@ -1,5 +1,8 @@
 package main
 
+// to run:
+// go run int-framework.go jr-candidates.txt sr-candidates.txt
+
 import (
 	"encoding/json"
     "fmt"
@@ -74,9 +77,18 @@ func saveToOutputBucket(outputChannel chan Candidate) {
 		}
 	}
 }
+func queueCandidates(candidates []Candidate, queue chan Candidate, mainWg *sync.WaitGroup) {
+	mainWg.Add(1);
+	
+	for remainingOffset := 0; remainingOffset < len(candidates); remainingOffset++ {
+		queue <- candidates[remainingOffset];
+	}
+	
+	defer mainWg.Done();
+}
+
 func main() {
 
-	pageSize := 10
 	concurrency := 3
 	fmt.Println("Process all developers at a rate of ", concurrency, " per second. Process all Senior devs when they become available 2.5 seconds after processing begins.")
 	fmt.Println("Hint: Senior devs are the video game characters.");
@@ -105,29 +117,19 @@ func main() {
 	priorityChannel := make(chan Candidate);
 	outputChannel := make(chan Candidate);
 	
-	// instantiate go routines. These will run continuously. Go is smart enough to stop these when all channels are drained.
+	
+	// if a goRoutine has channel-consuming methods, go is smart enough to keep it running until the channels are drained.
 	go controller(mainChannel, priorityChannel, outputChannel, concurrency);
 	go saveToOutputBucket(outputChannel);
 	
-	// put first page onto the main channel
-	for firstPageOffset := 0; firstPageOffset < pageSize; firstPageOffset++ {
-		mainChannel <- jrCandidates[firstPageOffset];
-	}
-	
+	// if a goRoutine only has synchronous logic pushing to a channel, we have to explicitly define a WaitGroup and wait for it.
+	var mainAsyncMethods sync.WaitGroup
+	go queueCandidates(jrCandidates, mainChannel, &mainAsyncMethods);
 	// Simulate secondary batch completion by waiting 2.5 seconds before processing the next file.
 	time.Sleep(2500 * time.Millisecond)
+	go queueCandidates(srCandidates, priorityChannel, &mainAsyncMethods);
 	
-	// Now put priority items onto priority channel
-	for srOffset := 0; srOffset < len(srCandidates); srOffset++ {
-		priorityChannel <- srCandidates[srOffset];
-	}
-	fmt.Println("done pushing priority items");
-
-	// put remaining page(s) onto main channel
-	for remainingOffset := pageSize; remainingOffset < len(jrCandidates); remainingOffset++ {
-		mainChannel <- jrCandidates[remainingOffset];
-	}
-
+	mainAsyncMethods.Wait();
 
 	
 }

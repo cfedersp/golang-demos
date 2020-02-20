@@ -1,0 +1,107 @@
+Journey into GoLang
+
+This document attempts to answer:
+As a java developer, or, as a student, why should I learn GoLang? 
+As a developer responsible for my own technology choices, what are GoLangs compelling strengths (without over-selling it)?
+Why should I recommend that my teammates take the time to learn and use it?
+
+
+Why was GoLang created?
+	Google created GoLang to solve concurrency problems at scale.
+
+What companies/orgs use GoLang?
+	- Open Source Community
+	- AWS
+	- Google
+	- Startups
+	- Who isn't using GoLang?
+
+What projects currently use GoLang?
+	- Kubernetes
+	- Kubernetes-native applications
+	- Various HashiCorp projects
+
+How might we generalize these projects?
+	- Infrastructure as a Service.
+	- Platform as a Service.
+	- Backend Integration projects.
+	- Any service that must receive AND send responses on 2 or more interfaces at the same time.
+	<data focus>
+
+What other types of projects might be a good fit for GoLang?
+	- Custom message brokers
+	- Websocket services
+	- Stream processing
+	- Self-throttled stream/feed processing
+	- One-time data loads that should be spread across cores to run as quickly as possible.
+	- Cloud-based multi-user document-editing
+	- API Gateway impl
+	- Smart Proxy impl
+	- Cryptocurrency services and applications
+	- Container startup scripts that you dont want to impl as a shell script or python.
+	- Python projects that grow beyond 300 lines of code.
+	
+What other benefits does GoLang have?
+	- easy to read+grok
+
+Among our clients, who uses GoLang?
+	- Tmobile's CCP
+	- SMPD platform team
+	
+Generally, what is GoLang good at?
+	- Parallel and Concurrent Processing applications that run on a single multi-core computer.
+	- Real-time notification services, Ex: websockets
+		- Multiple/Dynamic listeners, passively waiting for notification from a broker.
+
+Why can't java do these things?
+Java has a rich ecosystem of open-source software, but its executor is minimal. 
+Performing Parallel and Concurrent Processing in java requires advanced knowledge of low level threading (high risk);
+	How is my thread-synchronization logic written in java tested? <shrug>
+	I was able to write a custom multi-threaded event processor. Can it be re-used? Hahahaha. Hahahaha. haha heehee. No.
+In GoLang, high level concurrency features are available as basic operators.
+		- "channel" in-memory pub-sub,wait,select
+		- "go routine" async methods, WaitGroup
+		
+	
+In terms of real project and operational constraints, how will GoLang enhance my products over java?
+golang can:
+1) TIME: Reduce the amount of time your high-volume, single-threaded processor spends doing nothing while waiting for responses from external service calls.
+2) SCOPE: Enable sophisticated integrations including features like backpressure and disk-less mediation.
+3) QUALITY: Tested concurrency features come out-of-the box so you don't have to provide onerous test harnesses.
+		
+Whats the difference between "concurrent" and "in parallel"?
+	"concurrent" means having positive control over the execution and coordination of your multiple, varied tasks.
+	"in parallel" means running on multiple cores or cpus at the same time.
+	For example, node.js can asynchronously communicate with multiple services and reliably return the combined result, so it is said to be "concurrent", 
+		but since node is a single-threaded application, its methods are not running "in parallel".
+	As explained earlier, GoLang delivers both.
+
+What other problems might be solved well with GoLang and present interesting opportunities to a developer with GoLang experience?
+	- Media streaming
+	- Microsoft's Azure platform?
+
+What concerns and caveats are there in using GoLang?
+Not as portable as pure java - Not all libraries run on Windows:
+	- kafka client only runs on linux (as of 2019)
+	
+What could a developer do to demonstrate proficiency in GoLang?
+	Create custom literal and struct types.
+	Combine the results from 2 async I/O tasks.
+	Integrate with kafka and/or your org's favorite SDK.
+	Impl CRUD with either: mysql, dynamoDB, or cassandra.
+	Throw, catch, and handle errors properly.
+	Impl a REST webservice and a gRPC service.
+	Employ go modules for dependency management.
+	
+
+As an architect, what can I do to demonstrate GoLang as a compelling tool?
+	Find an application, lambda, ETL, or service that could benefit from re-architecting in GoLang, blog about its benefits, implement it in GoLang, and demonstrate it to your peers and team leaders.
+	Given that SpringFramework and Log4J (for example) are not available in GoLang, emphasize specifically how 12-factor principles can be implemented in a GoLang app [or explain why the principle(s) do not add value to a "GoLang-type" project]
+	
+Resources:
+http://tour.golang.org
+https://medium.com/@KevinHoffman/rate-limiting-service-calls-in-go-3771c6b7c146
+https://medium.com/golangspec/synchronized-goroutines-part-i-4fbcdd64a4ec
+https://12factor.net/
+https://logic2020.com/careers/join-the-team
+
