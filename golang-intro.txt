@@ -81,6 +81,7 @@ What other problems might be solved well with GoLang and present interesting opp
 	- Microsoft's Azure platform?
 
 What concerns and caveats are there in using GoLang?
+Where java has an enormously helpful error stack-tracing mechanism, golang's error tracing is not always helpful.
 Not as portable as pure java - Not all libraries run on Windows:
 	- kafka client only runs on linux (as of 2019)
 	
