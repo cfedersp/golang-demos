@@ -11,6 +11,12 @@ import (
 	// "strconv"
 )
 
+type DataPacket struct {
+	source string
+	// priority string
+	config string
+	data interface{}
+}
 /*
 type Candidate struct {
 	Id string
@@ -99,8 +105,9 @@ func main() {
 	// = means you are assigning an address or primitive to an L-Value
 
 	var inputRecords = rawBucketRecords.([]interface{})
-	for k,v := range inputRecords {
-		fmt.Println("key: " , k, "value: ", v);
+	for _,v := range inputRecords {
+		var currentData = DataPacket{"jr", "none for now", v};
+		fmt.Println("source: ", currentData.source, ", data: ", currentData.data);
 	}
 
 
