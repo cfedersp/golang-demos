@@ -20,60 +20,67 @@ type Candidate struct {
 	Name string
 	JobRec string
 }
-func controller(main chan Candidate, priority chan Candidate, outputChannel chan Candidate, parallelization int) {
+type CandidateRecommendation struct { // GoLang doesnt support inheritance - interfaces dont get declared beforehand so theres no need
+	looker Candidate
+	JobRec string
+	status int
+}
 
-
+func controller(main chan Candidate, priority chan Candidate, outputChannel chan CandidateRecommendation, adviceChannel chan int) {
 	tick := time.Tick(1000 * time.Millisecond)
 	boom := time.After(500 * time.Millisecond)
 
-	loopNum := int64(0)
+	workerCount := 0
 
 	for {
-		loopNum++;
-		//fmt.Println("+++++", loopNum);
 		<-tick // run this loop once per second
+
+		select {
+		case workerAdvice := <-adviceChannel:
+			workerCount = workerAdvice
+		default:
+		}
+
 		var wg sync.WaitGroup
 		// process a few items simultaneously
-		PARALLELBATCH: for perTickCandidateCounter := 0; perTickCandidateCounter < parallelization; perTickCandidateCounter++ {
+		PARALLELBATCH: for perTickCandidateCounter := 0; perTickCandidateCounter < workerCount; perTickCandidateCounter++ {
+
 			select {
 			case currCandidate := <-priority:
-
 				wg.Add(1);
-				go zEngineInt(loopNum, currCandidate, outputChannel, &wg);
+				go zEngineInt(currCandidate, outputChannel, &wg)
 
 			case currCandidate := <-main:
 				wg.Add(1);
-				go zEngineInt(loopNum, currCandidate, outputChannel, &wg);
-			case <-boom:
-				//fmt.Println("######", loopNum);
+				go zEngineInt(currCandidate, outputChannel, &wg)
+			case <-boom: // if we receive a boom event before receiving workerCount records, break
 				break PARALLELBATCH;
 			}
 		}
 		wg.Wait()
-		//fmt.Println("------", loopNum);
 	}
 }
-func zEngineInt(loopCount int64, inputCandidate Candidate, outputChannel chan Candidate, wg *sync.WaitGroup) {
 
+func zEngineInt(inputCandidate Candidate, outputChannel chan CandidateRecommendation, wg *sync.WaitGroup) {
+	var rec string;
 	defer wg.Done()
 
 	if(strings.Compare(strings.ToLower(inputCandidate.Name)[0:1], "e") < 1) {
-		inputCandidate.JobRec = "Data Scientist";
+		rec = "Data Scientist";
 	} else {
-		inputCandidate.JobRec = "Java Developer";
+		rec = "Java Developer";
 	}
 	if(strings.ToLower(inputCandidate.Name) != inputCandidate.Name) {
-		inputCandidate.JobRec += " 2"
+		rec += " 2"
 	}
-	// inputCandidate.JobRec += " " + strconv.FormatInt(loopCount, 10);
 
-	outputChannel <- inputCandidate;
+	outputChannel <- CandidateRecommendation{inputCandidate, rec, 200};
 }
-func saveToOutputBucket(outputChannel chan Candidate) {
+func saveToOutputBucket(outputChannel chan CandidateRecommendation) {
 	for {
 		select {
 		case currCandidate := <-outputChannel:
-			fmt.Println(currCandidate.Name, ":", currCandidate.JobRec);
+			fmt.Println(currCandidate.looker.Name, ":", currCandidate.JobRec);
 		}
 	}
 }
@@ -115,12 +122,13 @@ func main() {
 	// create main queue and priority queue
 	mainChannel := make(chan Candidate)
 	priorityChannel := make(chan Candidate);
-	outputChannel := make(chan Candidate);
-	
+	outputChannel := make(chan CandidateRecommendation);
+	adviceChannel := make(chan int)
 	
 	// if a goRoutine has channel-consuming methods, go is smart enough to keep it running until the channels are drained.
-	go controller(mainChannel, priorityChannel, outputChannel, concurrency);
+	go controller(mainChannel, priorityChannel, outputChannel, adviceChannel);
 	go saveToOutputBucket(outputChannel);
+	adviceChannel <- concurrency;
 	
 	// if a goRoutine only has synchronous logic pushing to a channel, we have to explicitly define a WaitGroup and wait for it.
 	var mainAsyncMethods sync.WaitGroup
