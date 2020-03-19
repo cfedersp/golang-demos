@@ -1,13 +1,14 @@
 package main
 
 // to run:
-// go run reader.go jr-candidates.txt sr-candidates.txt
+// go run reader.go ../jr-candidates.txt ../sr-candidates.txt
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,39 +21,55 @@ type DataPacket struct {
 	// priority string
 	config string
 	data interface{}
-	JobRec string
 }
 
-func controller(main chan DataPacket, priority chan DataPacket, outputChannel chan DataPacket, parallelization int) {
+type CandidateRecommendation struct { // GoLang doesnt support inheritance - interfaces dont get declared beforehand so theres no need
+	looker DataPacket
+	JobRec string
+	status int
+}
 
-
+//func controller(main chan DataPacket, priority chan DataPacket, outputChannel chan DataPacket, parallelization int)
+func controller(main chan DataPacket, priority chan DataPacket, outputChannel chan CandidateRecommendation, adviceChannel chan int) {
 	tick := time.Tick(1000 * time.Millisecond)
-	boom := time.After(500 * time.Millisecond)
+
+	workerCount := 0
 
 	for {
 		<-tick // run this loop once per second
-		var wg sync.WaitGroup
-		// process a few items simultaneously
-		// this "just-in-time" scheduling+prioritizing for loop is not necessary - go channels can handle delegation for us
-		// // How would we rate-limit in that case? number of workers would be tuned and the channel size would be low or zero
-	PARALLELBATCH: for perTickCandidateCounter := 0; perTickCandidateCounter < parallelization; perTickCandidateCounter++ {
+
 		select {
+		case workerAdvice := <-adviceChannel:
+			workerCount = workerAdvice
+		default:
+		}
+
+		// a WaitGroup is a cool feature but we dont really want to wait for workers to finish,
+		// we want to limit the number of live workers by controlling the number of new workers.
+		if(workerCount > 0) {
+			dispatcher(main, priority, outputChannel, workerCount);
+		}
+	}
+}
+func dispatcher(main chan DataPacket, priority chan DataPacket, outputChannel chan CandidateRecommendation, workerCount int) {
+	boom := time.After(500 * time.Millisecond)
+
+	// process a few items simultaneously
+PARALLELBATCH: for perTickCandidateCounter := 0; perTickCandidateCounter < workerCount; perTickCandidateCounter++ {
+	select {
 		case currCandidate := <-priority:
 
-			wg.Add(1);
-			go zEngineInt(currCandidate, outputChannel, &wg);
+			go zEngineInt(currCandidate, outputChannel)
 
 		case currCandidate := <-main:
-			wg.Add(1);
-			go zEngineInt(currCandidate, outputChannel, &wg);
-		case <-boom:
+
+			go zEngineInt(currCandidate, outputChannel)
+		case <-boom: // if we receive a boom event before receiving workerCount records, break
 			break PARALLELBATCH;
 		}
 	}
-		wg.Wait()
-		//fmt.Println("------", loopNum);
-	}
 }
+
 
 
 // this is my 'scheduler'
@@ -81,38 +98,46 @@ func schedulerLoop() {
 	}
 }
  */
-func zEngineInt(inputCandidate DataPacket, outputChannel chan DataPacket, wg *sync.WaitGroup) {
+func zEngineInt(inputCandidate DataPacket, outputChannel chan CandidateRecommendation) {
+	var rec string;
+	// we can only cast individual objects to their underlying original concrete type:
+	var genericMap = inputCandidate.data.(map[string]interface{}) // cast the interface to a map<string,interface>
+	var candidateName = genericMap["name"].(string) // cast the name to a string
 
-	defer wg.Done()
+	// we cant cast to map[string]string or we get: panic: interface conversion: interface {} is map[string]interface {}, not map[string]string
+	// var name = inputCandidate.data.(map[string]string)["name"]
 
-	//if(strings.Compare(strings.ToLower(inputCandidate.data.Name)[0:1], "e") < 1) {
-
-	inputCandidate.JobRec = "Java Developer";
-	if(inputCandidate.source == "sr") {
-		inputCandidate.JobRec += " 2"
+	if(strings.Compare(strings.ToLower(candidateName)[0:1], "e") < 1) {
+		rec = "Data Scientist";
+	} else {
+		rec = "Java Developer";
 	}
-	// inputCandidate.JobRec += " " + strconv.FormatInt(loopCount, 10);
+	if(strings.ToLower(candidateName) != candidateName) {
+		rec += " 2"
+	}
 
-	outputChannel <- inputCandidate;
+	outputChannel <- CandidateRecommendation{inputCandidate, rec, 200};
 }
-func saveToOutputBucket(outputChannel chan DataPacket) {
+
+func saveToOutputBucket(outputChannel chan CandidateRecommendation) {
 	for {
 		select {
 		case currCandidate := <-outputChannel:
 			// fmt.Println(currCandidate.Name, ":", currCandidate.JobRec);
-			fmt.Println("source: ", currCandidate.source, ", data: ", currCandidate.data);
+			fmt.Println("source: ", currCandidate.looker.source, ", data: ", currCandidate.looker.data);
 		}
 	}
 }
 
 func queueCandidates(candidates []DataPacket, queue chan DataPacket, mainWg *sync.WaitGroup) {
 	mainWg.Add(1);
+	defer mainWg.Done();
 
 	for remainingOffset := 0; remainingOffset < len(candidates); remainingOffset++ {
 		queue <- candidates[remainingOffset];
 	}
 
-	defer mainWg.Done();
+
 }
 
 
@@ -134,6 +159,7 @@ func main() {
 	}
 
 	// load the files into interface objects
+	// An empty interface may hold values of any type.
 	var rawJrRecords interface{}
 	jrLoadErr := json.Unmarshal(jrData, &rawJrRecords);
 	if(jrLoadErr != nil) {
@@ -161,13 +187,13 @@ func main() {
 
 	// put the interfaces into our standard structure, including src, config, JobRec
 	for _,v := range jrInputRecords {
-		var currentPacket = DataPacket{"jr", "none for now", v, ""};
+		var currentPacket = DataPacket{"jr", "none for now", v};
 		jrDataPackets = append(jrDataPackets, currentPacket);
 		//fmt.Println("source: ", currentData.source, ", data: ", currentData.data);
 	}
 
 	for _,v := range srInputRecords {
-		var currentPacket = DataPacket{"sr", "none for now", v, ""};
+		var currentPacket = DataPacket{"sr", "none for now", v};
 		srDataPackets = append(srDataPackets, currentPacket);
 		//fmt.Println("source: ", currentData.source, ", data: ", currentData.data);
 	}
@@ -176,13 +202,15 @@ func main() {
 	// create main queue and priority queue
 	mainChannel := make(chan DataPacket)
 	priorityChannel := make(chan DataPacket);
-	outputChannel := make(chan DataPacket);
+	outputChannel := make(chan CandidateRecommendation);
+	adviceChannel := make(chan int)
 
 
 	// if a goRoutine has channel-consuming methods, go is smart enough to keep it running until the channels are drained.
-	go controller(mainChannel, priorityChannel, outputChannel, concurrency);
+	go controller(mainChannel, priorityChannel, outputChannel, adviceChannel);
 	go saveToOutputBucket(outputChannel);
-
+	// no workers will run until we tell them how many to run in parallel
+	adviceChannel <- concurrency;
 	// if a goRoutine only has synchronous logic pushing to a channel, we have to explicitly define a WaitGroup and wait for it.
 	var mainAsyncMethods sync.WaitGroup
 	go queueCandidates(jrDataPackets, mainChannel, &mainAsyncMethods);
